@@ -31,7 +31,41 @@ const userSchema = new mongoose.Schema({
     resume: {
         type: String,
         default: ""
-    }
+    },
+
+    bio: {
+    type: String,
+    default: ""
+    },
+
+    college: {
+        type: String,
+        default: ""
+    },
+
+    branch: {
+        type: String,
+        default: ""
+    },
+
+    graduationYear: {
+        type: Number
+    },
+
+    github: {
+        type: String,
+        default: ""
+    },
+
+    linkedin: {
+        type: String,
+        default: ""
+    },
+
+    portfolio: {
+        type: String,
+        default: ""
+    },
 }, {
     timestamps : true
 });

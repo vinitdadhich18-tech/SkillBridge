@@ -149,8 +149,59 @@ const getProfile = async (req, res) => {
     }
 };
 
+const updateProfile = async (req, res) => {
+    try {
+
+        const {
+            bio,
+            college,
+            branch,
+            graduationYear,
+            github,
+            linkedin,
+            portfolio,
+            skills
+        } = req.body;
+
+        const userId = req.user.id;
+
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            {
+                bio,
+                college,
+                branch,
+                graduationYear,
+                github,
+                linkedin,
+                portfolio,
+                skills
+            },
+            {
+                new: true,
+                runValidators: true
+            }
+        ).select("-password");
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+            user: updatedUser
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
+    }
+};
+
 module.exports = {
     signup,
     login,
-    getProfile
+    getProfile,
+    updateProfile
 };
