@@ -2,6 +2,8 @@ const User = require("../models/User");
 const { signupSchema, loginSchema } = require("../validators/authValidator");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const cloudinary = require("../config/cloudinary");
+const fs = require("fs");
 
 const signup = async (req, res) => {
     try {
@@ -199,9 +201,172 @@ const updateProfile = async (req, res) => {
     }
 };
 
+const uploadResume = async (req, res) => {
+    try {
+
+        // Check if a file is uploaded
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: "Please upload a PDF resume"
+            });
+        }
+
+        // Find logged-in user
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+
+            if (fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
+
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        // Delete old resume from Cloudinary (if it exists)
+        if (user.resume && user.resume.public_id) {
+
+            await cloudinary.uploader.destroy(
+                user.resume.public_id,
+                {
+                    resource_type: "raw"
+                }
+            );
+        }
+
+        // Upload new resume
+        const result = await cloudinary.uploader.upload(
+            req.file.path,
+            {
+                resource_type: "raw",
+                folder: "SkillBridge/Resumes"
+            }
+        );
+
+        // Delete temporary local file
+        if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+
+        // Save new resume details
+        user.resume = {
+            url: result.secure_url,
+            public_id: result.public_id
+        };
+
+        await user.save();
+
+        // Get updated user
+        const updatedUser = await User.findById(req.user.id).select("-password");
+
+        return res.status(200).json({
+            success: true,
+            message: "Resume uploaded successfully",
+            user: updatedUser
+        });
+
+    } catch (error) {
+
+        // Delete temporary local file if an error occurs
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
+    }
+};
+
+const uploadProfilePicture = async (req, res) => {
+    try {
+
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: "Please upload a profile picture"
+            });
+        }
+
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+
+            if (fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
+
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        // Delete old profile picture from Cloudinary
+        if (user.profilePicture && user.profilePicture.public_id) {
+
+            await cloudinary.uploader.destroy(
+                user.profilePicture.public_id
+            );
+        }
+
+        // Upload new profile picture
+        const result = await cloudinary.uploader.upload(
+            req.file.path,
+            {
+                folder: "SkillBridge/ProfilePictures"
+            }
+        );
+
+        // Delete temporary local file
+        if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+
+        // Save image details
+        user.profilePicture = {
+            url: result.secure_url,
+            public_id: result.public_id
+        };
+
+        await user.save();
+
+        const updatedUser = await User.findById(req.user.id)
+            .select("-password");
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile picture uploaded successfully",
+            user: updatedUser
+        });
+
+    } catch (error) {
+
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
+    }
+};
+
 module.exports = {
     signup,
     login,
     getProfile,
-    updateProfile
+    updateProfile,
+    uploadResume,
+    uploadProfilePicture
 };

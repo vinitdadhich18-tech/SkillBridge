@@ -24,13 +24,25 @@ const userSchema = new mongoose.Schema({
     }],
 
     profilePicture: {
-        type: String,
-        default: ""
+        url: {
+            type: String,
+            default: ""
+        },
+        public_id: {
+            type: String,
+            default: ""
+        }
     },
 
     resume: {
-        type: String,
-        default: ""
+        url: {
+            type: String,
+            default: ""
+        },
+        public_id: {
+            type: String,
+            default: ""
+        }
     },
 
     bio: {
