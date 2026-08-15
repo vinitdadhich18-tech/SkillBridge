@@ -74,13 +74,114 @@ const createJob = async (req, res) => {
 const getAllJobs = async (req, res) => {
     try {
 
-        const jobs = await Job.find()
+        const {
+            search,
+            location,
+            jobType,
+            experienceLevel,
+            page = 1,
+            limit = 10
+        } = req.query;
+
+
+        // Convert pagination values to numbers
+        const pageNumber = Math.max(parseInt(page) || 1, 1);
+        const limitNumber = Math.min(
+            Math.max(parseInt(limit) || 10, 1),
+            50
+        );
+
+
+        // Calculate how many documents to skip
+        const skip = (pageNumber - 1) * limitNumber;
+
+
+        // Build dynamic filter
+        const filter = {};
+
+
+        // Search by title, company or description
+        if (search) {
+            filter.$or = [
+                {
+                    title: {
+                        $regex: search,
+                        $options: "i"
+                    }
+                },
+                {
+                    company: {
+                        $regex: search,
+                        $options: "i"
+                    }
+                },
+                {
+                    description: {
+                        $regex: search,
+                        $options: "i"
+                    }
+                }
+            ];
+        }
+
+
+        // Location filter
+        if (location) {
+            filter.location = {
+                $regex: location,
+                $options: "i"
+            };
+        }
+
+
+        // Job type filter
+        if (jobType) {
+            filter.jobType = jobType;
+        }
+
+
+        // Experience level filter
+        if (experienceLevel) {
+            filter.experienceLevel = experienceLevel;
+        }
+
+
+        // Get total number of matching jobs
+        const totalJobs = await Job.countDocuments(filter);
+
+
+        // Get paginated jobs
+        const jobs = await Job.find(filter)
             .populate("createdBy", "name email")
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNumber);
+
+
+        const totalPages = Math.ceil(totalJobs / limitNumber);
+
 
         return res.status(200).json({
             success: true,
+
             count: jobs.length,
+
+            pagination: {
+                currentPage: pageNumber,
+                limit: limitNumber,
+                totalJobs,
+                totalPages,
+                hasNextPage: pageNumber < totalPages,
+                hasPreviousPage: pageNumber > 1
+            },
+
+            filters: {
+                search: search || null,
+                location: location || null,
+                jobType: jobType || null,
+                experienceLevel: experienceLevel || null
+            },
+
             jobs
         });
 
