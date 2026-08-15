@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Job = require("../models/Job");
 
 const {
@@ -205,7 +206,17 @@ const getAllJobs = async (req, res) => {
 const getJobById = async (req, res) => {
     try {
 
-        const job = await Job.findById(req.params.id)
+        const { id } = req.params;
+
+        // Check if the ID is a valid MongoDB ObjectId
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid job ID"
+            });
+        }
+
+        const job = await Job.findById(id)
             .populate("createdBy", "name email");
 
         if (!job) {

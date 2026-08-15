@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Application = require("../models/Application");
 const Job = require("../models/Job");
 const User = require("../models/User");
@@ -15,6 +16,15 @@ const {
 const applyForJob = async (req, res) => {
     try {
 
+        const { jobId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(jobId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid job ID"
+            });
+        }
+
         // Validate request body
         const validationResult = createApplicationSchema.safeParse(req.body);
 
@@ -28,7 +38,7 @@ const applyForJob = async (req, res) => {
         const { coverLetter } = validationResult.data;
 
         // Find the job
-        const job = await Job.findById(req.params.jobId);
+        const job = await Job.findById(jobId);
 
         if (!job) {
             return res.status(404).json({
@@ -159,7 +169,16 @@ const getMyApplications = async (req, res) => {
 const getJobApplications = async (req, res) => {
     try {
 
-        const job = await Job.findById(req.params.jobId);
+        const { jobId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(jobId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid job ID"
+            });
+        }
+
+        const job = await Job.findById(jobId);
 
         if (!job) {
             return res.status(404).json({
@@ -210,6 +229,16 @@ const getJobApplications = async (req, res) => {
 const updateApplicationStatus = async (req, res) => {
     try {
 
+        const { id } = req.params;
+
+        // Check if application ID is a valid MongoDB ObjectId
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid application ID"
+            });
+        }
+
         const validationResult =
             updateApplicationStatusSchema.safeParse(req.body);
 
@@ -222,9 +251,8 @@ const updateApplicationStatus = async (req, res) => {
 
         const { status } = validationResult.data;
 
-        const application = await Application.findById(
-            req.params.id
-        ).populate("job", "createdBy title company");
+        const application = await Application.findById(id)
+            .populate("job", "createdBy title company");
 
         if (!application) {
             return res.status(404).json({
