@@ -238,6 +238,7 @@ const getJobById = async (req, res) => {
 const updateJob = async (req, res) => {
     try {
 
+        // Validate request body
         const validationResult = updateJobSchema.safeParse(req.body);
 
         if (!validationResult.success) {
@@ -247,6 +248,7 @@ const updateJob = async (req, res) => {
             });
         }
 
+        // Find the job
         const job = await Job.findById(req.params.id);
 
         if (!job) {
@@ -256,7 +258,7 @@ const updateJob = async (req, res) => {
             });
         }
 
-        // Only the user who created the job can update it
+        // Check ownership
         if (job.createdBy.toString() !== req.user.id) {
             return res.status(403).json({
                 success: false,
@@ -264,6 +266,7 @@ const updateJob = async (req, res) => {
             });
         }
 
+        // Update only validated fields
         const updatedJob = await Job.findByIdAndUpdate(
             req.params.id,
             validationResult.data,
@@ -298,6 +301,7 @@ const updateJob = async (req, res) => {
 const deleteJob = async (req, res) => {
     try {
 
+        // Find the job
         const job = await Job.findById(req.params.id);
 
         if (!job) {
@@ -307,7 +311,7 @@ const deleteJob = async (req, res) => {
             });
         }
 
-        // Only the user who created the job can delete it
+        // Check ownership
         if (job.createdBy.toString() !== req.user.id) {
             return res.status(403).json({
                 success: false,
@@ -315,6 +319,7 @@ const deleteJob = async (req, res) => {
             });
         }
 
+        // Delete job
         await Job.findByIdAndDelete(req.params.id);
 
         return res.status(200).json({
@@ -332,7 +337,6 @@ const deleteJob = async (req, res) => {
         });
     }
 };
-
 
 module.exports = {
     createJob,
