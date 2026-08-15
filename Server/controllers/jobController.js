@@ -5,6 +5,7 @@ const {
     updateJobSchema
 } = require("../validators/jobValidator");
 
+const calculateSkillMatch = require("../utils/skillMatcher");
 
 // =========================
 // CREATE JOB
@@ -230,6 +231,73 @@ const getJobById = async (req, res) => {
     }
 };
 
+// =========================
+// GET Recommended JOB
+// =========================
+
+
+const getRecommendedJobs = async (req, res) => {
+    try {
+
+        const User = require("../models/User");
+
+        const user = await User.findById(req.user.id)
+            .select("skills");
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        if (!user.skills || user.skills.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Please add your skills to get job recommendations"
+            });
+        }
+
+        const jobs = await Job.find()
+            .populate("createdBy", "name email")
+            .sort({ createdAt: -1 });
+
+        const recommendedJobs = jobs
+            .map(job => {
+
+                const matchPercentage = calculateSkillMatch(
+                    user.skills,
+                    job.skillsRequired
+                );
+
+                return {
+                    ...job.toObject(),
+                    matchPercentage
+                };
+            })
+            .filter(job => job.matchPercentage > 0)
+            .sort((a, b) =>
+                b.matchPercentage - a.matchPercentage
+            );
+
+        return res.status(200).json({
+            success: true,
+            count: recommendedJobs.length,
+            userSkills: user.skills,
+            jobs: recommendedJobs
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
+    }
+};
+
 
 // =========================
 // UPDATE JOB
@@ -342,6 +410,7 @@ module.exports = {
     createJob,
     getAllJobs,
     getJobById,
+    getRecommendedJobs,
     updateJob,
     deleteJob
 };

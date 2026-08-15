@@ -9,9 +9,11 @@ const {
     createJob,
     getAllJobs,
     getJobById,
+    getRecommendedJobs,
     updateJob,
     deleteJob
 } = require("../controllers/jobController");
+
 
 // Recruiter only
 router.post(
@@ -23,6 +25,13 @@ router.post(
 
 // Public routes
 router.get("/", getAllJobs);
+
+router.get(
+    "/recommended",
+    authMiddleware,
+    roleMiddleware("student"),
+    getRecommendedJobs
+);
 
 router.get("/:id", getJobById);
 
